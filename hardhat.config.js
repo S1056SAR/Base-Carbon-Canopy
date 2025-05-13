@@ -5,8 +5,8 @@ require("dotenv").config();
 module.exports = {
   solidity: "0.8.24",
   networks: {
-    sepolia: {
-      url: process.env.SEPOLIA_RPC_URL || "",
+    baseSepolia: {
+      url: process.env.BASE_SEPOLIA_RPC_URL || "",
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     // It's good practice to have a local development network

@@ -1,6 +1,6 @@
 node_modules
 .env
-
+.cursorrules
 # Hardhat files
 /cache
 /artifacts
@@ -15,3 +15,18 @@ node_modules
 
 # Hardhat Ignition default folder for deployments against a local node
 ignition/deployments/chain-31337
+
+# Python virtual environment
+.venv/
+venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# ML Model files (if they get very large and are regenerated)
+# *.h5
+# *.keras
+
+# AutoKeras project directory (if it gets created)
+autokeras_impact_score/
