@@ -123,47 +123,44 @@ export default function TradingSection() {
     setTransactionStatus("pending")
 
     try {
-      const tokenAmountBigInt = ethers.utils.parseUnits(amount, 0) // Carbon credits are whole units
+      const tokenAmountBigInt = ethers.parseUnits(amount, 0)
 
       if (action === "buy") {
         if (!mockUSDCContract || !carbonCreditContract || !defaultSellerAddress || defaultSellerAddress === "0x0000000000000000000000000000000000000000") {
           toast({ title: "Configuration Error", description: "USDC contract or Seller Address not configured.", variant: "destructive" })
           throw new Error("Buy prerequisites not met")
         }
-        const pricePerTokenInSmallestUnit = ethers.utils.parseUnits(project.mockPricePerToken, 6) // mUSDC has 6 decimals
-        const totalCost = pricePerTokenInSmallestUnit.mul(tokenAmountBigInt)
+        const pricePerTokenInSmallestUnit = ethers.parseUnits(project.mockPricePerToken, 6)
+        const totalCost = pricePerTokenInSmallestUnit * tokenAmountBigInt
 
-        // Check mUSDC balance
-        const userUSDCBalance = ethers.utils.parseUnits(usdcBalance, 6)
-        if (userUSDCBalance.lt(totalCost)) {
-          toast({ title: "Insufficient mUSDC", description: `You need ${ethers.utils.formatUnits(totalCost, 6)} mUSDC. Your balance: ${usdcBalance} mUSDC.`, variant: "destructive" })
+        const userUSDCBalance = ethers.parseUnits(usdcBalance, 6)
+        if (userUSDCBalance < totalCost) {
+          toast({ title: "Insufficient mUSDC", description: `You need ${ethers.formatUnits(totalCost, 6)} mUSDC. Your balance: ${usdcBalance} mUSDC.`, variant: "destructive" })
           throw new Error("Insufficient mUSDC balance")
         }
 
-        // Approve mUSDC spending by CarbonCredit contract
         const allowance = await mockUSDCContract.allowance(account, carbonCreditContract.address)
-        if (allowance.lt(totalCost)) {
+        if (allowance < totalCost) {
           const approveTx = await mockUSDCContract.approve(carbonCreditContract.address, totalCost)
           toast({ title: "Approval Required", description: "Approving mUSDC spending...", variant: "default" })
           await approveTx.wait()
           toast({ title: "Approval Successful", description: "mUSDC spending approved. Proceeding with purchase...", variant: "default" })
         }
         
-        // Call buyCredits
         const buyTx = await carbonCreditContract.buyCredits(
           projectIdNum,
           tokenAmountBigInt,
           pricePerTokenInSmallestUnit,
-          defaultSellerAddress // Use the address of the owner/deployer from context
+          defaultSellerAddress
         )
         await buyTx.wait()
         toast({ title: "Purchase Successful!", description: `Successfully bought ${amount} credits from ${project.name}.`, variant: "default" })
 
       } else if (action === "retire") {
         if (!carbonCreditContract) throw new Error("CarbonCredit contract not available")
-        const currentBalance = creditBalances[projectIdNum] ? ethers.utils.parseUnits(creditBalances[projectIdNum], 0) : ethers.BigNumber.from(0)
-        if (tokenAmountBigInt.gt(currentBalance)) {
-          toast({ title: "Insufficient Credits", description: `You only have ${ethers.utils.formatUnits(currentBalance, 0)} credits to retire.`, variant: "destructive" })
+        const currentBalance = creditBalances[projectIdNum] ? ethers.parseUnits(creditBalances[projectIdNum], 0) : BigInt(0)
+        if (tokenAmountBigInt > currentBalance) {
+          toast({ title: "Insufficient Credits", description: `You only have ${ethers.formatUnits(currentBalance, 0)} credits to retire.`, variant: "destructive" })
           throw new Error("Insufficient credits to retire")
         }
         const retireTx = await carbonCreditContract.retireCredits(projectIdNum, tokenAmountBigInt)
@@ -172,10 +169,10 @@ export default function TradingSection() {
       }
 
       setTransactionStatus("success")
-      // Trigger balance updates (mUSDC is in context, credit balances local)
-      const updatedCreditBalance = await carbonCreditContract.balanceOf(account, projectIdNum)
-      setCreditBalances((prev: Record<number, string>) => ({ ...prev, [projectIdNum]: updatedCreditBalance.toString() }))
-      // The usdcBalance should update via its own effect in Web3Context if a transfer happened.
+      if (carbonCreditContract && account) {
+        const updatedCreditBalance = await carbonCreditContract.balanceOf(account, projectIdNum)
+        setCreditBalances((prev: Record<number, string>) => ({ ...prev, [projectIdNum]: updatedCreditBalance.toString() }))
+      }
 
     } catch (error: any) {
       console.error(`Error ${action} credits:`, error)
@@ -185,7 +182,7 @@ export default function TradingSection() {
     } finally {
       setLoading(false)
       setTimeout(() => setTransactionStatus("idle"), 5000)
-      setAmount("") // Reset amount for both actions
+      setAmount("")
     }
   }
 
@@ -202,7 +199,6 @@ export default function TradingSection() {
     }
   }
 
-  // Determine if form fields should be disabled
   const formDisabled = !isConnected || loading
 
   return (

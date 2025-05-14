@@ -161,6 +161,7 @@ export default function Hero() {
       {/* Content */}
       <div className="container mx-auto px-4 z-10 text-center">
         <div className="max-w-4xl mx-auto">
+          {/* Image removed as per user request 
           <Image
             src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/basecarboncanopymedia-fkgI4JTiFL9IIyDoMh09Hy6fyJuwQY.png"
             alt="Base Carbon Canopy"
@@ -168,6 +169,7 @@ export default function Hero() {
             height={200}
             className="mx-auto mb-8 w-40 md:w-52 lg:w-64"
           />
+          */}
 
           <h1 className="text-4xl md:text-5xl lg:text-7xl font-extrabold mb-6 gold-gradient">Base Carbon Canopy</h1>
 
