@@ -22,7 +22,7 @@ export default function Footer() {
               accessible and transparent.
             </p>
             <div className="flex gap-4 mt-6">
-              <Link href="#" className="text-white/70 hover:text-primary transition-colors">
+              <Link href="https://github.com/S1056SAR/Base-Carbon-Canopy" className="text-white/70 hover:text-primary transition-colors">
                 <Github className="h-5 w-5" />
                 <span className="sr-only">GitHub</span>
               </Link>
@@ -57,7 +57,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="#forecast" className="text-white/70 hover:text-primary transition-colors">
-                  Forecasts
+                  Impact Score
                 </Link>
               </li>
             </ul>
@@ -67,22 +67,22 @@ export default function Footer() {
             <h3 className="font-montserrat font-bold text-lg mb-4 gold-gradient">Resources</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="#" className="text-white/70 hover:text-primary transition-colors">
+                <Link href="https://docs.base.org/" className="text-white/70 hover:text-primary transition-colors">
                   Documentation
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-white/70 hover:text-primary transition-colors">
+                <Link href="https://docs.cdp.coinbase.com/" className="text-white/70 hover:text-primary transition-colors">
                   API
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-white/70 hover:text-primary transition-colors">
+                <Link href="https://smartwallet.dev/" className="text-white/70 hover:text-primary transition-colors">
                   Smart Contracts
                 </Link>
               </li>
               <li>
-                <Link href="#" className="text-white/70 hover:text-primary transition-colors">
+                <Link href="https://offsetguide.org/" className="text-white/70 hover:text-primary transition-colors">
                   Carbon Credit Guide
                 </Link>
               </li>

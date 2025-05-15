@@ -107,7 +107,7 @@ export default function AboutSection() {
             <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/30 to-primary/10 rounded-lg blur-sm"></div>
             <div className="relative bg-black rounded-lg overflow-hidden border border-primary/30">
               <Image
-                src="/placeholder.svg?height=400&width=600"
+                src="/carboncreditforest.jpeg"
                 alt="Carbon Credit Lifecycle"
                 width={600}
                 height={400}

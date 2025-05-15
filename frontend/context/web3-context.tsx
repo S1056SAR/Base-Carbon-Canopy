@@ -130,12 +130,12 @@ export function Web3Provider({ children }: { children: ReactNode }) {
     }
   }, [mockUSDCContract, account, isConnected])
 
-  const disconnectWallet = () => { // Definition of disconnectWallet was missing in previous context, assumed it existed. Adding it here for clarity and completeness based on common patterns.
-    const defaultProvider = new ethers.JsonRpcProvider(BASE_SEPOLIA_RPC_URL); // V6 Change
+  const disconnectWallet = () => {
+    const defaultProvider = new ethers.JsonRpcProvider(BASE_SEPOLIA_RPC_URL); 
     setProvider(defaultProvider);
     setSigner(null)
     setAccount(null)
-    setChainId(Number(defaultProvider._network?.chainId || 0)) // Try to get chainId from default provider
+    setChainId(null)
     setIsConnected(false)
     setCarbonCreditContract(null)
     setMockUSDCContract(null)

@@ -2,12 +2,13 @@
 
 import { Button } from "@/components/ui/button"
 import { useWeb3 } from "@/context/web3-context"
-import { Wallet } from "lucide-react"
+import { Wallet, LogOut } from "lucide-react"
 
 export default function WalletConnectButton() {
-  const { isConnected, account, connectWallet, isCorrectNetwork, switchNetwork } = useWeb3()
+  const { isConnected, account, connectWallet, disconnectWallet, isCorrectNetwork, switchNetwork } = useWeb3()
 
   const shortenAddress = (address: string) => {
+    if (!address) return ""
     return `${address.slice(0, 6)}...${address.slice(-4)}`
   }
 
@@ -29,9 +30,13 @@ export default function WalletConnectButton() {
   }
 
   return (
-    <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
-      <Wallet className="mr-2 h-4 w-4" />
-      {account ? shortenAddress(account) : "Connected"}
+    <Button 
+      onClick={disconnectWallet} 
+      variant="outline" 
+      className="border-red-500/50 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+    >
+      <LogOut className="mr-2 h-4 w-4" />
+      Disconnect {account ? shortenAddress(account) : ""}
     </Button>
   )
 }
