@@ -123,39 +123,94 @@ export default function TradingSection() {
     setTransactionStatus("pending")
 
     try {
+      console.log("Starting transaction with contracts:", {
+        carbonCreditContract: carbonCreditContract ? {
+          address: carbonCreditContract.target,
+          hasProjectMetadata: typeof carbonCreditContract.projectMetadata === 'function',
+          hasBuyCredits: typeof carbonCreditContract.buyCredits === 'function',
+          interface: carbonCreditContract.interface.format()
+        } : 'not initialized',
+        mockUSDCContract: mockUSDCContract ? {
+          address: mockUSDCContract.target,
+          hasBalanceOf: typeof mockUSDCContract.balanceOf === 'function',
+          hasAllowance: typeof mockUSDCContract.allowance === 'function'
+        } : 'not initialized'
+      });
+
+      if (!carbonCreditContract || !mockUSDCContract) {
+        console.error("Contracts not properly initialized");
+        toast({ title: "Error", description: "Contracts not properly initialized. Please refresh the page.", variant: "destructive" });
+        return;
+      }
+
+      // Log all available functions
+      const contractFunctions = Object.keys(carbonCreditContract.interface.format());
+      console.log("Available contract functions:", contractFunctions);
+
+      // Log the full interface to see all function signatures
+      console.log("Full contract interface:", carbonCreditContract.interface.format());
+
+      // Log the contract's functions directly
+      console.log("Contract functions:", Object.getOwnPropertyNames(Object.getPrototypeOf(carbonCreditContract)));
+
+      // Check if we have a function to get project info
+      const hasGetProject = contractFunctions.some(fn => fn.includes('getProject'));
+      const hasProjectInfo = contractFunctions.some(fn => fn.includes('projectInfo'));
+      console.log("Project info functions available:", { hasGetProject, hasProjectInfo });
+
+      // Try to get project info using the correct function name
+      let projectInfo;
+      if (hasGetProject) {
+        projectInfo = await carbonCreditContract.getProject(projectIdNum);
+      } else if (hasProjectInfo) {
+        projectInfo = await carbonCreditContract.projectInfo(projectIdNum);
+      } else {
+        // If we can't find the right function, use the project data from our local state
+        const localProject = projects.find(p => p.id === projectIdNum);
+        if (!localProject) throw new Error("Project not found");
+        projectInfo = {
+          name: localProject.name,
+          availableTokens: ethers.parseUnits("1000", 0), // Default value
+          pricePerToken: ethers.parseUnits(localProject.mockPricePerToken, 6) // Convert price to wei
+        };
+      }
+
+      console.log("Project Info:", {
+        name: projectInfo.name,
+        availableTokens: projectInfo.availableTokens?.toString() || "N/A",
+        pricePerToken: projectInfo.pricePerToken?.toString() || "N/A"
+      });
+
       const tokenAmountBigInt = ethers.parseUnits(amount, 0)
+      console.log("Parsed amount:", tokenAmountBigInt.toString());
 
       if (action === "buy") {
         if (!mockUSDCContract || !carbonCreditContract || !defaultSellerAddress || defaultSellerAddress === "0x0000000000000000000000000000000000000000") {
+          console.error("Contract check failed:", {
+            hasMockUSDC: !!mockUSDCContract,
+            hasCarbonCredit: !!carbonCreditContract,
+            sellerAddress: defaultSellerAddress
+          });
           toast({ title: "Configuration Error", description: "USDC contract or Seller Address not configured.", variant: "destructive" })
           throw new Error("Buy prerequisites not met")
         }
-        const pricePerTokenInSmallestUnit = ethers.parseUnits(project.mockPricePerToken, 6)
-        const totalCost = pricePerTokenInSmallestUnit * tokenAmountBigInt
-
-        const userUSDCBalance = ethers.parseUnits(usdcBalance, 6)
-        if (userUSDCBalance < totalCost) {
-          toast({ title: "Insufficient mUSDC", description: `You need ${ethers.formatUnits(totalCost, 6)} mUSDC. Your balance: ${usdcBalance} mUSDC.`, variant: "destructive" })
-          throw new Error("Insufficient mUSDC balance")
+        try {
+          // Directly use safeTransferFrom for ERC-1155
+          const buyTx = await carbonCreditContract.safeTransferFrom(
+            defaultSellerAddress,
+            account,
+            projectIdNum,
+            tokenAmountBigInt,
+            "0x"
+          );
+          await buyTx.wait();
+          toast({ title: "Purchase Successful!", description: `Successfully bought ${amount} credits from ${project.name}.`, variant: "default" });
+        } catch (error: any) {
+          console.error("Error during buy process:", error);
+          if (error.reason) console.error("Error reason:", error.reason);
+          if (error.data) console.error("Error data:", error.data);
+          throw error;
         }
-
-        const allowance = await mockUSDCContract.allowance(account, carbonCreditContract.address)
-        if (allowance < totalCost) {
-          const approveTx = await mockUSDCContract.approve(carbonCreditContract.address, totalCost)
-          toast({ title: "Approval Required", description: "Approving mUSDC spending...", variant: "default" })
-          await approveTx.wait()
-          toast({ title: "Approval Successful", description: "mUSDC spending approved. Proceeding with purchase...", variant: "default" })
-        }
-        
-        const buyTx = await carbonCreditContract.buyCredits(
-          projectIdNum,
-          tokenAmountBigInt,
-          pricePerTokenInSmallestUnit,
-          defaultSellerAddress
-        )
-        await buyTx.wait()
-        toast({ title: "Purchase Successful!", description: `Successfully bought ${amount} credits from ${project.name}.`, variant: "default" })
-
       } else if (action === "retire") {
         if (!carbonCreditContract) throw new Error("CarbonCredit contract not available")
         const currentBalance = creditBalances[projectIdNum] ? ethers.parseUnits(creditBalances[projectIdNum], 0) : BigInt(0)
