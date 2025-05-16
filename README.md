@@ -26,9 +26,11 @@ The VCM suffers from:
 
 ![Map](frontend/public/bcc3.png)
 
-*Placeholder for Screenshot 3: Trading Interface (Buy/Retire)*
+![Trading](frontend/public/bcctrade.png)
 
 ![Impact Scores](frontend/public/bcc4.png)
+
+![Architecture](frontend/public/bccarch.png)
 
 ## Technologies
 - **Solidity**: Smart contracts for ERC-1155 credits and mock USDC.
