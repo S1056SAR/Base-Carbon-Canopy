@@ -22,13 +22,12 @@ The VCM suffers from:
 
 ## Application Preview / Screenshots
 
-*Placeholder for Screenshot 1: Main DApp Interface / Hero Section*
 ![Homescreen](frontend/public/basecarboncanopyhome.png)
-*Placeholder for Screenshot 2: Map View with Project Markers*
+
 ![Map](frontend/public/bcc3.png)
+
 *Placeholder for Screenshot 3: Trading Interface (Buy/Retire)*
 
-*Placeholder for Screenshot 4: Impact Score Dashboard*
 ![Impact Scores](frontend/public/bcc4.png)
 
 ## Technologies
