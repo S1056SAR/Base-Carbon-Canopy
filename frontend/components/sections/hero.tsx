@@ -172,10 +172,14 @@ export default function Hero() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button className="bg-primary text-black hover:bg-primary/90 text-lg py-6 px-8">Explore Projects</Button>
-            <Button variant="outline" className="border-primary text-primary hover:bg-primary/10 text-lg py-6 px-8">
-              Learn More
-            </Button>
+            <a href="https://offset.climateneutralnow.org/AllProjects" target="_blank" rel="noopener noreferrer">
+              <Button className="bg-primary text-black hover:bg-primary/90 text-lg py-6 px-8 w-full sm:w-auto">Explore Projects</Button>
+            </a>
+            <a href="https://offsetguide.org/what-are-carbon-credits/" target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" className="border-primary text-primary hover:bg-primary/10 text-lg py-6 px-8 w-full sm:w-auto">
+                Learn More
+              </Button>
+            </a>
           </div>
         </div>
       </div>
