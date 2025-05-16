@@ -143,7 +143,7 @@ export default function ImpactScoreSection() {
             Project Impact Scores
           </h2>
           <p className="text-lg text-white/80 max-w-3xl mx-auto">
-            AI-generated Impact Scores to highlight project effectiveness and sustainability contributions.
+            AI-calculated Impact Scores to highlight project effectiveness and sustainability contributions.
           </p>
         </div>
 
