@@ -8,69 +8,56 @@ function usdc(amount) {
 
 async function main() {
     const [deployer] = await ethers.getSigners();
-    const ownerAddress = deployer.address; // Use deployer as the owner for both contracts
-    const tradingFeePercentage = 1; // 1%
-
-    console.log("Deploying contracts with the account:", ownerAddress);
-    console.log("Account balance:", (await ethers.provider.getBalance(ownerAddress)).toString());
+    console.log("Deploying contracts with the account:", deployer.address);
 
     // Deploy MockUSDC
-    console.log("\nDeploying MockUSDC...");
-    const MockUSDCFactory = await ethers.getContractFactory("MockUSDC");
-    const mockUSDC = await MockUSDCFactory.deploy(ownerAddress);
+    const MockUSDC = await ethers.getContractFactory("MockUSDC");
+    const mockUSDC = await MockUSDC.deploy(deployer.address);
     await mockUSDC.waitForDeployment();
-    const mockUSDCAddress = await mockUSDC.getAddress();
-    console.log("MockUSDC deployed to:", mockUSDCAddress);
+    console.log("MockUSDC deployed to:", await mockUSDC.getAddress());
 
     // Deploy CarbonCredit
-    console.log("\nDeploying CarbonCredit...");
-    const CarbonCreditFactory = await ethers.getContractFactory("CarbonCredit");
-    const carbonCredit = await CarbonCreditFactory.deploy(
-        mockUSDCAddress,
-        ownerAddress,
-        tradingFeePercentage
+    const CarbonCredit = await ethers.getContractFactory("CarbonCredit");
+    const carbonCredit = await CarbonCredit.deploy(
+        await mockUSDC.getAddress(),
+        deployer.address,
+        1 // 1% fee
     );
     await carbonCredit.waitForDeployment();
-    const carbonCreditAddress = await carbonCredit.getAddress();
-    console.log("CarbonCredit deployed to:", carbonCreditAddress);
+    console.log("CarbonCredit deployed to:", await carbonCredit.getAddress());
 
-    // --- Post-Deployment Setup ---
-    console.log("\n--- Starting Post-Deployment Setup ---");
+    // Mint some mock USDC for testing
+    const mintAmount = ethers.parseUnits("1000000", 6); // 1 million mUSDC
+    await mockUSDC.mint(deployer.address, mintAmount);
+    console.log("Minted", ethers.formatUnits(mintAmount, 6), "mUSDC to", deployer.address);
 
-    // 1. Mint Mock Projects
-    console.log("\nMinting mock projects...");
+    // Create some initial projects
     const projects = [
-        { name: "Kenya Reforestation", location: "Kenya", supply: 500 },
-        { name: "India Methane Capture", location: "India", supply: 1000 },
-        { name: "Brazil Solar Farm", location: "Brazil", supply: 750 },
-        { name: "Indonesia Peatland Restoration", location: "Indonesia", supply: 600 },
-        { name: "Ghana Cookstoves", location: "Ghana", supply: 400 },
+        {
+            name: "Kenya Reforestation",
+            location: "Kenya",
+            initialSupply: 1000,
+            pricePerTon: ethers.parseUnits("10.50", 6)
+        },
+        {
+            name: "India Methane Capture",
+            location: "India",
+            initialSupply: 500,
+            pricePerTon: ethers.parseUnits("15.75", 6)
+        }
     ];
 
-    for (let i = 0; i < projects.length; i++) {
-        const p = projects[i];
-        const tx = await carbonCredit.mintNewProject(p.name, p.location, p.supply, ownerAddress); // Mint to owner for now
-        await tx.wait(); // Wait for transaction confirmation
-        console.log(`  Minted Project ${i}: ${p.name} (${p.supply} tons)`);
-    }
-    console.log("Finished minting projects.");
-
-    // 2. Distribute Mock USDC
-    console.log("\nDistributing mock USDC...");
-    const addressesToFund = [ownerAddress]; // Add other test addresses if needed
-    const amountToFund = usdc(10000); // Fund each address with 10,000 mUSDC
-
-    for (const addr of addressesToFund) {
-        const tx = await mockUSDC.mint(addr, amountToFund);
+    for (const project of projects) {
+        const tx = await carbonCredit.mintNewProject(
+            project.name,
+            project.location,
+            project.initialSupply,
+            project.pricePerTon,
+            deployer.address
+        );
         await tx.wait();
-        console.log(`  Funded ${addr} with ${ethers.formatUnits(amountToFund, 6)} mUSDC`);
+        console.log("Created project:", project.name);
     }
-    console.log("Finished distributing mock USDC.");
-
-    console.log("\n--- Post-Deployment Setup Complete ---");
-    console.log("Deployment successful!");
-    console.log("MockUSDC Address:", mockUSDCAddress);
-    console.log("CarbonCredit Address:", carbonCreditAddress);
 }
 
 main()

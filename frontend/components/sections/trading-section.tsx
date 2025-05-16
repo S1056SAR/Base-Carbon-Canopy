@@ -48,6 +48,7 @@ export default function TradingSection() {
   const [loading, setLoading] = useState<boolean>(false)
   const [transactionStatus, setTransactionStatus] = useState<"idle" | "pending" | "success" | "error">("idle")
   const [creditBalances, setCreditBalances] = useState<Record<number, string>>({})
+  const [tradeHistory, setTradeHistory] = useState<any[]>([])
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -195,7 +196,12 @@ export default function TradingSection() {
           throw new Error("Buy prerequisites not met")
         }
         try {
-          // Directly use safeTransferFrom for ERC-1155
+          // 1. Transfer USDC to the seller (for demo, do this before the token transfer)
+          const totalCost = ethers.parseUnits((Number(project.mockPricePerToken) * Number(amount)).toFixed(2), 6);
+          const usdcTx = await mockUSDCContract.transfer(defaultSellerAddress, totalCost);
+          await usdcTx.wait();
+
+          // 2. Transfer the ERC-1155 token
           const buyTx = await carbonCreditContract.safeTransferFrom(
             defaultSellerAddress,
             account,
@@ -204,6 +210,28 @@ export default function TradingSection() {
             "0x"
           );
           await buyTx.wait();
+
+          // 3. Update USDC balance
+          const updatedUSDCBalance = await mockUSDCContract.balanceOf(account);
+          if (typeof setUSDCBalance === 'function') setUSDCBalance(updatedUSDCBalance.toString());
+
+          // 4. Update credit balance
+          const updatedCreditBalance = await carbonCreditContract.balanceOf(account, projectIdNum);
+          setCreditBalances((prev) => ({ ...prev, [projectIdNum]: updatedCreditBalance.toString() }));
+
+          // 5. Add to trade history (for demo)
+          setTradeHistory((prev) => [
+            {
+              type: 'Traded',
+              projectId: projectIdNum,
+              credits: amount,
+              price: (Number(project.mockPricePerToken) * Number(amount)).toFixed(2),
+              address: account,
+              timestamp: new Date().toLocaleString()
+            },
+            ...prev
+          ]);
+
           toast({ title: "Purchase Successful!", description: `Successfully bought ${amount} credits from ${project.name}.`, variant: "default" });
         } catch (error: any) {
           console.error("Error during buy process:", error);
@@ -341,7 +369,21 @@ export default function TradingSection() {
             </TabsContent>
           </Tabs>
           <CardFooter className="mt-6">
-            <TradeHistoryTable />
+            <TradeHistoryTable tradeHistory={tradeHistory} />
+            {/* Fallback: If TradeHistoryTable does not accept tradeHistory, render a simple list for demo */}
+            {tradeHistory.length > 0 && (
+              <div className="mt-4 bg-black/60 p-4 rounded-lg">
+                <h3 className="text-lg font-bold mb-2 text-yellow-400">Recent Trades (Demo)</h3>
+                <ul className="space-y-2">
+                  {tradeHistory.map((trade, idx) => (
+                    <li key={idx} className="border-b border-yellow-700 pb-2 mb-2">
+                      <span className="font-semibold text-yellow-300">{trade.type}</span> | Project #{trade.projectId} | {trade.credits} credits | ${trade.price}<br />
+                      <span className="text-xs text-gray-400">{trade.address}</span> | <span className="text-xs text-gray-400">{trade.timestamp}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </CardFooter>
         </Card>
       </div>

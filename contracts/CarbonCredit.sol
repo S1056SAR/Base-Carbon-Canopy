@@ -24,12 +24,13 @@ contract CarbonCredit is ERC1155, Ownable {
         string name;
         string location; // e.g., "Kenya" or specific coordinates as string
         uint256 totalTons; // Initial amount minted
+        uint256 pricePerTon;
     }
     mapping(uint256 => ProjectInfo) public projectInfo;
     uint256 public nextProjectId; // Counter for new projects
 
     // Events
-    event ProjectCreated(uint256 indexed projectId, string name, string location, uint256 totalTons);
+    event ProjectCreated(uint256 indexed projectId, string name, string location, uint256 totalTons, uint256 pricePerTon);
     event CreditTraded(uint256 indexed projectId, uint256 amount, uint256 pricePerTon, address indexed seller, address indexed buyer);
     event CreditRetired(uint256 indexed projectId, uint256 amount, address indexed owner);
 
@@ -62,35 +63,92 @@ contract CarbonCredit is ERC1155, Ownable {
      * @param _name Name of the carbon offset project.
      * @param _location Location of the project.
      * @param _initialSupply Total number of carbon credits (tons) to mint for this project.
+     * @param _pricePerTon The price per ton of the carbon credits.
      * @param _to Address to mint the initial supply to (usually the project owner or a treasury).
      */
     function mintNewProject(
         string memory _name,
         string memory _location,
         uint256 _initialSupply,
+        uint256 _pricePerTon,
         address _to
     ) public onlyOwner {
         require(_initialSupply > 0, "CarbonCredit: Initial supply must be greater than zero");
         require(_to != address(0), "CarbonCredit: Invalid address to mint to");
+        require(_pricePerTon > 0, "CarbonCredit: Price per ton must be greater than zero");
 
         uint256 projectId = nextProjectId;
         projectInfo[projectId] = ProjectInfo({
             name: _name,
             location: _location,
-            totalTons: _initialSupply
+            totalTons: _initialSupply,
+            pricePerTon: _pricePerTon
         });
 
         // Mint the ERC1155 tokens. The projectId is used as the token ID.
         // Data field is empty for this basic implementation.
         _mint(_to, projectId, _initialSupply, "");
 
-        emit ProjectCreated(projectId, _name, _location, _initialSupply);
+        emit ProjectCreated(projectId, _name, _location, _initialSupply, _pricePerTon);
 
         nextProjectId++;
     }
 
     // --- Trading Function ---
-    // TODO: Implement tradeCredits
+    /**
+     * @dev Allows a buyer to purchase carbon credits from a seller.
+     * The seller must have approved this contract to transfer their tokens (setApprovalForAll).
+     * The buyer must have approved this contract to spend their mockUSDC.
+     * @param _projectId The ID of the project/token to buy.
+     * @param _amount The number of tokens to buy.
+     * @param _seller The address of the seller.
+     */
+    function buyCredits(
+        uint256 _projectId,
+        uint256 _amount,
+        address _seller
+    ) public {
+        require(_seller != address(0), "CarbonCredit: Invalid seller address");
+        // require(_seller != msg.sender, "CarbonCredit: Buyer cannot be the seller"); // TEMPORARILY DISABLED FOR LOCAL TESTING
+        require(_amount > 0, "CarbonCredit: Amount must be greater than zero");
+        require(projectInfo[_projectId].totalTons > 0, "CarbonCredit: Project does not exist");
+
+        uint256 pricePerTon = projectInfo[_projectId].pricePerTon;
+        uint256 totalCost = _amount * pricePerTon;
+        uint256 fee = (totalCost * tradingFeePercentage) / 100;
+        uint256 amountToSeller = totalCost - fee;
+
+        require(
+            mockUSDC.allowance(msg.sender, address(this)) >= totalCost,
+            "CarbonCredit: Insufficient USDC allowance"
+        );
+        require(
+            mockUSDC.balanceOf(msg.sender) >= totalCost,
+            "CarbonCredit: Insufficient USDC balance"
+        );
+        require(
+            balanceOf(_seller, _projectId) >= _amount,
+            "CarbonCredit: Seller has insufficient credits"
+        );
+
+        // Transfer USDC
+        require(
+            mockUSDC.transferFrom(msg.sender, _seller, amountToSeller),
+            "CarbonCredit: USDC transfer to seller failed"
+        );
+        require(
+            mockUSDC.transferFrom(msg.sender, owner(), fee),
+            "CarbonCredit: USDC fee transfer failed"
+        );
+
+        // Transfer Carbon Credits: seller -> buyer
+        // Requires seller to have called setApprovalForAll(address(this), true)
+        // We call the public safeTransferFrom, which ensures the approval check is done.
+        // The contract itself (address(this)) needs to be approved by the seller.
+        this.safeTransferFrom(_seller, msg.sender, _projectId, _amount, "");
+
+        emit CreditTraded(_projectId, _amount, pricePerTon, _seller, msg.sender);
+    }
 
     // --- Retirement Function ---
     /**
@@ -101,7 +159,10 @@ contract CarbonCredit is ERC1155, Ownable {
      */
     function retireCredits(uint256 _projectId, uint256 _amount) public {
         require(_amount > 0, "CarbonCredit: Amount must be greater than zero");
-        // The _burn function internally checks if msg.sender owns enough tokens
+        require(
+            balanceOf(msg.sender, _projectId) >= _amount,
+            "CarbonCredit: Insufficient credits to retire"
+        );
 
         _burn(msg.sender, _projectId, _amount);
 
@@ -119,45 +180,21 @@ contract CarbonCredit is ERC1155, Ownable {
     }
 
     /**
-     * @dev Allows a buyer to purchase carbon credits from a seller.
-     * The seller must have approved this contract to transfer their tokens (setApprovalForAll).
-     * The buyer must have approved this contract to spend their mockUSDC.
-     * @param _projectId The ID of the project/token to buy.
-     * @param _amount The number of tokens to buy.
-     * @param _pricePerTon The price per token in mockUSDC (considering 6 decimals for USDC).
-     * @param _seller The address of the seller.
+     * @dev Allows a buyer to get project information.
+     * @param _projectId The ID of the project to get information about.
+     * @return name The project name
+     * @return location The project location
+     * @return totalTons The total tons of carbon credits
+     * @return pricePerTon The price per ton in USDC
      */
-    function buyCredits(
-        uint256 _projectId,
-        uint256 _amount,
-        uint256 _pricePerTon, // Price in smallest unit of mUSDC (e.g., 10_000_000 for $10)
-        address _seller
-    ) public {
-        require(_seller != address(0), "CarbonCredit: Invalid seller address");
-        require(_seller != msg.sender, "CarbonCredit: Buyer cannot be the seller");
-        require(balanceOf(_seller, _projectId) >= _amount, "CarbonCredit: Seller has insufficient balance");
-        require(_amount > 0, "CarbonCredit: Amount must be greater than zero");
-        require(projectInfo[_projectId].totalTons > 0, "CarbonCredit: Project does not exist or has no tons"); // Basic check
-
-        uint256 totalCost = _amount * _pricePerTon;
-        uint256 fee = _calculateFee(totalCost);
-        uint256 amountToSeller = totalCost - fee;
-
-        // Check buyer's USDC allowance and balance
-        require(mockUSDC.allowance(msg.sender, address(this)) >= totalCost, "CarbonCredit: Check USDC allowance for buyer");
-        require(mockUSDC.balanceOf(msg.sender) >= totalCost, "CarbonCredit: Buyer has insufficient USDC balance");
-
-        // Transfer USDC: buyer -> seller & buyer -> owner (fee)
-        mockUSDC.transferFrom(msg.sender, _seller, amountToSeller);
-        mockUSDC.transferFrom(msg.sender, owner(), fee);
-
-        // Transfer Carbon Credits: seller -> buyer
-        // Requires seller to have called setApprovalForAll(address(this), true)
-        // We call the public safeTransferFrom, which ensures the approval check is done.
-        // The contract itself (address(this)) needs to be approved by the seller.
-        this.safeTransferFrom(_seller, msg.sender, _projectId, _amount, "");
-
-        emit CreditTraded(_projectId, _amount, _pricePerTon, _seller, msg.sender);
+    function getProjectInfo(uint256 _projectId) public view returns (
+        string memory name,
+        string memory location,
+        uint256 totalTons,
+        uint256 pricePerTon
+    ) {
+        ProjectInfo memory info = projectInfo[_projectId];
+        return (info.name, info.location, info.totalTons, info.pricePerTon);
     }
 
     // TODO: Implement view functions if needed (e.g., getProjectInfo)
