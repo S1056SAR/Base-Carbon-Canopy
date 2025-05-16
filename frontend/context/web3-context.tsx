@@ -3,8 +3,7 @@
 import type React from "react"
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { ethers } from "ethers"
-import CarbonCreditABI from "@/abis/carbon-credit.json" // Assuming this is { abi: [...] }
-import MockUSDCABI from "@/abis/mock-usdc.json" // Assuming this is { abi: [...] }
+import type { Abi } from "ethers"
 
 // Extend Window interface for TypeScript to recognize window.ethereum
 interface ExtendedWindow extends Window {
@@ -16,11 +15,11 @@ const BASE_SEPOLIA_CHAIN_ID = 84532 // 0x14A34
 const BASE_SEPOLIA_RPC_URL = "https://sepolia.base.org"
 
 // IMPORTANT: REPLACE THESE WITH YOUR ACTUAL DEPLOYED CONTRACT ADDRESSES
-const CARBON_CREDIT_CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000" // TODO: Replace with actual deployed CarbonCredit contract address
-const MOCK_USDC_CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000" // TODO: Replace with actual deployed MockUSDC contract address
+const CARBON_CREDIT_CONTRACT_ADDRESS = "0x7Bd6321f99C6511348B0E65eC1250F02A0b7eF34"
+const MOCK_USDC_CONTRACT_ADDRESS = "0x2908dA8E7936b11Bc9e730b0a8B4B6Bb7f591Dae"
 
 // IMPORTANT: REPLACE THIS WITH THE ADDRESS THAT DEPLOYED/OWNS THE PROJECTS FOR INITIAL SALE
-const DEFAULT_SELLER_ADDRESS = "0x0000000000000000000000000000000000000000" // TODO: Replace with the project owner/seller address
+const DEFAULT_SELLER_ADDRESS = "0x5d3Cd01f5f1646cd52ccb00edeFF5f3943e7F60d"
 
 interface Web3ContextType {
   provider: ethers.Provider | null
@@ -39,6 +38,14 @@ interface Web3ContextType {
 }
 
 const Web3Context = createContext<Web3ContextType | undefined>(undefined)
+
+interface ContractABI {
+  abi: Abi
+}
+
+import CarbonCreditABI from "@/abis/carbon-credit.json" // Changed to use carbon-credit.json
+import MockUSDCABI from "@/abis/MockUSDC.json" // Changed from mock-usdc.json to MockUSDC.json
+import { toast } from "react-hot-toast"
 
 export function Web3Provider({ children }: { children: ReactNode }) {
   const [provider, setProvider] = useState<ethers.Provider | null>(null)
@@ -170,31 +177,32 @@ export function Web3Provider({ children }: { children: ReactNode }) {
         console.error("Cannot initialize contracts: No signer or provider available.")
         return
       }
-      // Type assertion for ABI if necessary, assuming structure is { abi: [...] }
+
+      // Get the ABI array from the imported JSON
       const carbonCreditAbiArray = (CarbonCreditABI as any).abi || CarbonCreditABI;
       const mockUsdcAbiArray = (MockUSDCABI as any).abi || MockUSDCABI;
 
-      if (CARBON_CREDIT_CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000") {
-        const carbonCredit = new ethers.Contract(
-          CARBON_CREDIT_CONTRACT_ADDRESS,
-          carbonCreditAbiArray, // V6 Change: Pass ABI array directly
-          contractSignerOrProvider
-        )
-        setCarbonCreditContract(carbonCredit)
-      } else {
-        console.warn("CarbonCredit contract address is a placeholder. Contract not initialized.")
-      }
+      console.log("Initializing contracts with ABIs:", {
+        carbonCreditAbi: carbonCreditAbiArray,
+        mockUsdcAbi: mockUsdcAbiArray
+      });
 
-      if (MOCK_USDC_CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000") {
-        const mockUSDC = new ethers.Contract(
-          MOCK_USDC_CONTRACT_ADDRESS,
-          mockUsdcAbiArray, // V6 Change: Pass ABI array directly
-          contractSignerOrProvider
-        )
-        setMockUSDCContract(mockUSDC)
-      } else {
-        console.warn("MockUSDC contract address is a placeholder. Contract not initialized.")
-      }
+      // Log the full ABI to see what functions are available
+      console.log("Carbon Credit ABI:", JSON.stringify(carbonCreditAbiArray, null, 2));
+
+      const carbonCredit = new ethers.Contract(
+        CARBON_CREDIT_CONTRACT_ADDRESS,
+        carbonCreditAbiArray,
+        contractSignerOrProvider
+      )
+      setCarbonCreditContract(carbonCredit)
+      
+      const mockUSDC = new ethers.Contract(
+        MOCK_USDC_CONTRACT_ADDRESS,
+        mockUsdcAbiArray,
+        contractSignerOrProvider
+      )
+      setMockUSDCContract(mockUSDC)
     } catch (error) {
       console.error("Failed to initialize contracts:", error)
       setCarbonCreditContract(null)

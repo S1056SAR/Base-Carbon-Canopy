@@ -10,6 +10,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
  * Includes an owner-only mint function for distributing tokens to test accounts.
  */
 contract MockUSDC is ERC20, Ownable {
+    uint8 private constant DECIMALS = 6;
+
     /**
      * @dev Constructor sets the token name, symbol, decimals, and initial owner.
      * Mimics USDC with 6 decimals.
@@ -38,6 +40,10 @@ contract MockUSDC is ERC20, Ownable {
      * Overriding the default 18 to match USDC's 6 decimals.
      */
     function decimals() public pure override returns (uint8) {
-        return 6;
+        return DECIMALS;
+    }
+
+    function mintForTesting(address to, uint256 amount) public {
+        _mint(to, amount);
     }
 } 
