@@ -1,6 +1,6 @@
 # Base Carbon Canopy
 
-**Base Carbon Canopy** is a decentralized platform for trading tokenized carbon credits in the voluntary carbon market (VCM), built on the **Base Sepolia testnet** for the **Base Build India Hackathon** (Stablecoins track). It leverages **mock USDC** as the sole medium for peer-to-peer transactions, ensuring stable, low-cost trading. The platform features a **React DApp** with a **Leaflet.js map** to visualize projects, **AutoML-driven Impact Score analysis** for projects, and a **1% fee** mechanism, addressing VCM issues like opacity, high costs, and accessibility barriers. Aligned with **SDGs 13 (Climate Action), 9 (Industry, Innovation), and 10 (Reduced Inequality)**, it empowers small-scale projects in India.
+**Base Carbon Canopy** is a decentralized platform for trading tokenized carbon credits in the voluntary carbon market (VCM), built on the **Base Sepolia testnet**. It leverages **mock USDC** as the sole medium for peer-to-peer transactions, ensuring stable, low-cost trading. The platform features a **React DApp** with a **Leaflet.js map** to visualize projects, **AutoML-driven Impact Score analysis** for projects, and a **1% fee** mechanism, addressing VCM issues like opacity, high costs, and accessibility barriers. Aligned with **SDGs 13 (Climate Action), 9 (Industry, Innovation), and 10 (Reduced Inequality)**, it empowers small-scale projects in India.
 
 ## Problem Addressed
 
@@ -26,9 +26,11 @@ The VCM suffers from:
 
 ![Map](frontend/public/bcc3.png)
 
-*Placeholder for Screenshot 3: Trading Interface (Buy/Retire)*
+![Trading](frontend/public/bcctrade.png)
 
 ![Impact Scores](frontend/public/bcc4.png)
+
+![Architecture](frontend/public/bccarch.png)
 
 ## Technologies
 - **Solidity**: Smart contracts for ERC-1155 credits and mock USDC.
@@ -108,4 +110,4 @@ Contributions are welcome! To contribute:
 MIT License
 
 ## Contact
-For inquiries, reach out via the hackathon platform or GitHub issues.
+For inquiries, reach out via GitHub issues.
