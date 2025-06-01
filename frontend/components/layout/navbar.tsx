@@ -3,13 +3,16 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Menu, X } from "lucide-react"
+import { Menu, X, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import WalletConnectButton from "@/components/wallet-connect-button"
+import { useWeb3 } from "@/context/web3-context"
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isOwner, setIsOwner] = useState(false)
+  const { carbonCreditContract, account, isConnected } = useWeb3()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,6 +22,26 @@ export default function Navbar() {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  // Check if the connected account is the contract owner
+  useEffect(() => {
+    const checkOwnership = async () => {
+      if (!carbonCreditContract || !account || !isConnected) {
+        setIsOwner(false)
+        return
+      }
+
+      try {
+        const owner = await carbonCreditContract.owner()
+        setIsOwner(account.toLowerCase() === owner.toLowerCase())
+      } catch (error) {
+        console.error("Error checking ownership:", error)
+        setIsOwner(false)
+      }
+    }
+
+    checkOwnership()
+  }, [carbonCreditContract, account, isConnected])
 
   return (
     <header
@@ -53,6 +76,12 @@ export default function Navbar() {
             <Link href="#impact-scores" className="text-white/80 hover:text-primary transition-colors">
               Impact Scores
             </Link>
+            {isOwner && (
+              <Link href="/admin" className="text-primary hover:text-primary/80 transition-colors flex items-center gap-1">
+                <Shield className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
             <WalletConnectButton />
           </nav>
 
@@ -94,6 +123,16 @@ export default function Navbar() {
           >
             Impact Scores
           </Link>
+          {isOwner && (
+            <Link
+              href="/admin"
+              className="text-primary hover:text-primary/80 transition-colors py-2 flex items-center gap-1"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <Shield className="h-4 w-4" />
+              Admin Panel
+            </Link>
+          )}
           <div className="pt-2">
             <WalletConnectButton />
           </div>

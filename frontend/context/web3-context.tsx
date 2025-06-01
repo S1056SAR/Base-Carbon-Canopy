@@ -43,7 +43,7 @@ interface ContractABI {
   abi: Abi
 }
 
-import CarbonCreditABI from "@/abis/carbon-credit.json" // Changed to use carbon-credit.json
+import CarbonCreditABI from "@/abis/CarbonCredit.json" // Changed to use CarbonCredit.json
 import MockUSDCABI from "@/abis/MockUSDC.json" // Changed from mock-usdc.json to MockUSDC.json
 import { toast } from "react-hot-toast"
 

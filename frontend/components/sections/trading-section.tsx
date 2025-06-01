@@ -50,23 +50,66 @@ export default function TradingSection() {
   const [creditBalances, setCreditBalances] = useState<Record<number, string>>({})
   const [tradeHistory, setTradeHistory] = useState<any[]>([])
 
-  useEffect(() => {
-    const fetchProjects = async () => {
+  const fetchProjects = async () => {
+    if (!carbonCreditContract || !isConnected) {
+      console.log("Contract not available or not connected, skipping project fetch")
+      return
+    }
+
+    try {
+      // Get the next project ID to know how many projects exist
+      const nextId = await carbonCreditContract.nextProjectId()
+      const nextIdNumber = Number(nextId)
+      
+      if (nextIdNumber === 0) {
+        setProjects([])
+        return
+      }
+
+      // Fetch project info for each project
+      const projectPromises = []
+      
+      for (let i = 0; i < nextIdNumber; i++) {
+        projectPromises.push(
+          carbonCreditContract.projectInfo(i).then((info: any) => ({
+            id: i,
+            name: info.name,
+            locationName: info.location,
+            coordinates: [0, 0] as [number, number], // Default coordinates
+            type: "Carbon Offset", // Default type
+            description: `${info.name} located in ${info.location}`,
+            totalMinted: Number(info.totalTons),
+            mockPricePerToken: ethers.formatUnits(info.pricePerTon, 6) // Convert from contract format
+          }))
+        )
+      }
+
+      const fetchedProjects = await Promise.all(projectPromises)
+      setProjects(fetchedProjects)
+      console.log("Fetched projects from blockchain:", fetchedProjects)
+      
+    } catch (error) {
+      console.error("Error loading projects from blockchain:", error)
+      // Fallback to static data if blockchain fetch fails
       try {
         const response = await fetch("/data/projects.json")
-        if (!response.ok) throw new Error("Failed to fetch projects from /data/projects.json")
-        const data: ProjectData[] = await response.json()
-        setProjects(data)
-        if (data.length > 0) {
-          // setSelectedProjectId(data[0].id.toString()) // Optionally pre-select first project
+        if (response.ok) {
+          const data: ProjectData[] = await response.json()
+          setProjects(data)
+          console.log("Fallback to static projects:", data)
+        } else {
+          setProjects([])
         }
-      } catch (error) {
-        console.error("Error loading projects:", error)
+      } catch (fallbackError) {
+        console.error("Fallback to static data also failed:", fallbackError)
         setProjects([])
       }
     }
+  }
+
+  useEffect(() => {
     fetchProjects()
-  }, [])
+  }, [carbonCreditContract, isConnected])
 
   useEffect(() => {
     const fetchCreditBalances = async () => {
@@ -298,11 +341,23 @@ export default function TradingSection() {
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle className="gold-gradient text-2xl">Trade & Retire Credits</CardTitle>
-              {isConnected && (
-                <Badge variant="outline" className="border-green-500/50 bg-green-500/10 text-green-400">
-                  <Wallet className="h-4 w-4 mr-2" /> {account?.substring(0, 6)}...{account?.substring(account.length - 4)}
-                </Badge>
-              )}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={fetchProjects}
+                  disabled={!isConnected}
+                  className="border-primary/30 hover:border-primary/50"
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Refresh Projects
+                </Button>
+                {isConnected && (
+                  <Badge variant="outline" className="border-green-500/50 bg-green-500/10 text-green-400">
+                    <Wallet className="h-4 w-4 mr-2" /> {account?.substring(0, 6)}...{account?.substring(account.length - 4)}
+                  </Badge>
+                )}
+              </div>
             </div>
             <CardDescription>Your mUSDC Balance: <span className="font-bold text-primary">{isConnected ? usdcBalance : 'N/A'} mUSDC</span></CardDescription>
           </CardHeader>
